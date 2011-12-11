@@ -78,3 +78,27 @@ func (platform Platform) Property(prop PlatformProperty) (string, error) {
 	}
 	return C.GoStringN(&buf[0], C.int(length)), nil
 }
+
+func (platform Platform) Devices(t DeviceType) ([]Device, error) {
+	var num_devices C.cl_uint
+	if ret := C.clGetDeviceIDs(platform.id, C.cl_device_type(t),
+		0, (*C.cl_device_id)(nil), &num_devices); ret != C.CL_SUCCESS {
+		return nil, Cl_error(ret)
+	} else if num_devices == 0 {
+		return nil, Cl_error(C.CL_INVALID_VALUE)
+	}
+
+	c_devices := make([]C.cl_device_id, num_devices)
+	if ret := C.clGetDeviceIDs(platform.id, C.cl_device_type(t),
+		num_devices, &c_devices[0], &num_devices); ret != C.CL_SUCCESS {
+		return nil, Cl_error(ret)
+	} else if num_devices == 0 {
+		return nil, Cl_error(C.CL_INVALID_VALUE)
+	}
+
+	devices := make([]Device, num_devices)
+	for i, v := range c_devices {
+		devices[i].id = v
+	}
+	return devices, nil
+}
