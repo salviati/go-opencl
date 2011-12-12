@@ -12,18 +12,18 @@ import (
 	"unsafe"
 )
 
-type Cl_platform_info C.cl_platform_info
+type PlatformProperty C.cl_platform_info
 
 const (
-	CL_PLATFORM_PROFILE    Cl_platform_info = C.CL_PLATFORM_PROFILE
-	CL_PLATFORM_VERSION    Cl_platform_info = C.CL_PLATFORM_VERSION
-	CL_PLATFORM_NAME       Cl_platform_info = C.CL_PLATFORM_NAME
-	CL_PLATFORM_VENDOR     Cl_platform_info = C.CL_PLATFORM_VENDOR
-	CL_PLATFORM_EXTENSIONS Cl_platform_info = C.CL_PLATFORM_EXTENSIONS
+	CL_PLATFORM_PROFILE    PlatformProperty = C.CL_PLATFORM_PROFILE
+	CL_PLATFORM_VERSION    PlatformProperty = C.CL_PLATFORM_VERSION
+	CL_PLATFORM_NAME       PlatformProperty = C.CL_PLATFORM_NAME
+	CL_PLATFORM_VENDOR     PlatformProperty = C.CL_PLATFORM_VENDOR
+	CL_PLATFORM_EXTENSIONS PlatformProperty = C.CL_PLATFORM_EXTENSIONS
 )
 
-func PlatformInfoParams() []Cl_platform_info {
-	return []Cl_platform_info{
+func PlatformProperties() []PlatformProperty {
+	return []PlatformProperty{
 		CL_PLATFORM_PROFILE,
 		CL_PLATFORM_VERSION,
 		CL_PLATFORM_NAME,
@@ -31,11 +31,11 @@ func PlatformInfoParams() []Cl_platform_info {
 		CL_PLATFORM_EXTENSIONS}
 }
 
-type Cl_platform_id struct {
+type Platform struct {
 	id C.cl_platform_id
 }
 
-func ClGetPlatformIDs() ([]Cl_platform_id, error) {
+func Platforms() ([]Platform, error) {
 	var num_platforms C.cl_uint
 	if ret := C.clGetPlatformIDs(0, (*C.cl_platform_id)(nil), &num_platforms); ret != C.CL_SUCCESS {
 		return nil, Cl_error(ret)
@@ -50,29 +50,29 @@ func ClGetPlatformIDs() ([]Cl_platform_id, error) {
 		return nil, Cl_error(C.CL_INVALID_VALUE)
 	}
 
-	platforms := make([]Cl_platform_id, num_platforms)
+	platforms := make([]Platform, num_platforms)
 	for i, v := range c_platforms {
 		platforms[i].id = v
 	}
 	return platforms, nil
 }
 
-func GetPlatformInfo(platform Cl_platform_id) (map[Cl_platform_info]string, error) {
-	params := make(map[Cl_platform_info]string)
-	for _, param := range PlatformInfoParams() {
+func (platform Platform) Properties() (map[PlatformProperty]string, error) {
+	infos := make(map[PlatformProperty]string)
+	for _, param := range PlatformProperties() {
 		var err error
-		if params[param], err = ClGetPlatformInfo(platform, param); err != nil {
+		if infos[param], err = platform.Property(param); err != nil {
 			return nil, err
 		}
 	}
-	return params, nil
+	return infos, nil
 }
 
-func ClGetPlatformInfo(platform Cl_platform_id, info Cl_platform_info) (string, error) {
+func (platform Platform) Property(prop PlatformProperty) (string, error) {
 	const bufsize = 1024
 	var buf [bufsize]C.char
 	var length C.size_t
-	if ret := C.clGetPlatformInfo(platform.id, C.cl_platform_info(info),
+	if ret := C.clGetPlatformInfo(platform.id, C.cl_platform_info(prop),
 		bufsize, unsafe.Pointer(&buf[0]), &length); ret != C.CL_SUCCESS {
 		return "", Cl_error(ret)
 	}
