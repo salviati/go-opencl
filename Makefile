@@ -7,5 +7,6 @@ CGOFILES=\
    device.go\
    opencl.go\
    platform.go\
+   program.go\
 
 include $(GOROOT)/src/Make.pkg
