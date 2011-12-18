@@ -6,6 +6,7 @@ CGOFILES=\
    commandQueue.go\
    context.go\
    device.go\
+   kernel.go\
    opencl.go\
    platform.go\
    program.go\
