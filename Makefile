@@ -2,6 +2,7 @@ include $(GOROOT)/src/Make.inc
 
 TARG=opencl
 CGOFILES=\
+   buffer.go\
    commandQueue.go\
    context.go\
    device.go\
