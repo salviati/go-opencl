@@ -1,9 +1,10 @@
 package opencl
 
 /*
+#cgo CFLAGS: -I .
 #cgo LDFLAGS: -lOpenCL
 
-#include "CL/cl.h"
+#include "CL/opencl.h"
 
 */
 import "C"

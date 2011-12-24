@@ -1,9 +1,10 @@
 package opencl
 
 /*
+#cgo CFLAGS: -I CL
 #cgo LDFLAGS: -lOpenCL
 
-#include "CL/cl.h"
+#include "CL/opencl.h"
 
 cl_context_properties PlatformToContextParameter(cl_platform_id platform) { return (cl_context_properties)platform; }
 
