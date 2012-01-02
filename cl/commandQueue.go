@@ -29,6 +29,7 @@ package cl
 import "C"
 
 import (
+	"github.com/tones111/raw"
 	"unsafe"
 )
 
@@ -65,23 +66,22 @@ func (cq *CommandQueue) EnqueueKernel(k *Kernel, offset uint, gsize uint, lsize 
 	return nil
 }
 
-func (cq *CommandQueue) EnqueueReadBuffer(buf *Buffer, offset uint32, size uint32) ([]byte, error) {
-	c_bytes := make([]byte, size)
-	if ret := C.clEnqueueReadBuffer(cq.id, buf.id, C.CL_TRUE, C.size_t(offset), C.size_t(size), unsafe.Pointer(&c_bytes[0]), 0, nil, nil); ret != C.CL_SUCCESS {
-		return nil, Cl_error(ret)
+func (cq *CommandQueue) EnqueueReadBuffer(buf *Buffer, offset uint32, data interface{}) error {
+	bytes := raw.ByteSlice(data)
+	if ret := C.clEnqueueReadBuffer(cq.id, buf.id, C.CL_TRUE, C.size_t(offset), C.size_t(len(bytes)), raw.DataAddress(bytes), 0, nil, nil); ret != C.CL_SUCCESS {
+		return Cl_error(ret)
 	}
-
-	// Copy the buffer in case the garbage collector moves the slice in memory
-	bytes := make([]byte, size)
-	for i, v := range c_bytes {
-		bytes[i] = v
-	}
-	return bytes, nil
+	raw.ByteCopy(data, bytes)
+	return nil
 }
 
-func (cq *CommandQueue) EnqueueWriteBuffer(buf *Buffer, data []byte, offset uint32) error {
+func (cq *CommandQueue) EnqueueWriteBuffer(buf *Buffer, data interface{}, offset uint32) error {
+	bytes := raw.ByteSlice(data)
+	if len(bytes) == 0 {
+		return Cl_error(C.CL_INVALID_VALUE)
+	}
 
-	if ret := C.clEnqueueWriteBuffer(cq.id, buf.id, C.CL_TRUE, C.size_t(offset), C.size_t(len(data)), unsafe.Pointer(&data[0]), 0, nil, nil); ret != C.CL_SUCCESS {
+	if ret := C.clEnqueueWriteBuffer(cq.id, buf.id, C.CL_TRUE, C.size_t(offset), C.size_t(len(bytes)), unsafe.Pointer(&bytes[0]), 0, nil, nil); ret != C.CL_SUCCESS {
 		return Cl_error(ret)
 	}
 	return nil

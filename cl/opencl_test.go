@@ -77,13 +77,14 @@ func getQueue(c *Context, d Device, t *testing.T) *CommandQueue {
 
 func Test_OpenCl(t *testing.T) {
 	var square_source = `
-__kernel void hello(__global uchar *input, __global uchar *output)
+__kernel void hello(__global float *input, __global float *output)
 {
    size_t id = get_global_id(0);
    output[id] = input[id] * input[id];
 }`
 
-	inData := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	inData := []float32{1.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	outData := make([]float32, len(inData))
 
 	var err error
 
@@ -110,16 +111,15 @@ __kernel void hello(__global uchar *input, __global uchar *output)
 		t.Fatal("Error setting kernel arg 0:", err)
 	} else if err = kernel.SetArg(1, outBuf); err != nil {
 		t.Fatal("Error setting kernel arg 1:", err)
-	} else if err = queue.EnqueueKernel(kernel, 0, uint(len(inData)), uint(len(inData))); err != nil {
+	} else if err = queue.EnqueueKernel(kernel, 0, 44, 44); err != nil {
 		t.Fatal("Error enquing kernel:", err)
 	}
 
-	var data []byte
-	if data, err = queue.EnqueueReadBuffer(outBuf, 0, uint32(len(inData))); err != nil {
+	if err = queue.EnqueueReadBuffer(outBuf, 0, outData); err != nil {
 		t.Fatal("Error reading data:", err)
 	}
 
-	for i, v := range data {
+	for i, v := range outData {
 		fmt.Println("Data[", i, "] = ", v)
 		if v != inData[i]*inData[i] {
 			t.Fatal("Incorrect results")
