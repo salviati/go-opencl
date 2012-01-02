@@ -18,24 +18,21 @@ type Program struct {
 	id C.cl_program
 }
 
-func (c *Context) NewProgramFromSource(prog string) (*Program, error) {
-	var c_program C.cl_program
+func (p *Program) NewKernelNamed(name string) (*Kernel, error) {
+	var c_kernel C.cl_kernel
 	var err C.cl_int
 
-	cs := C.CString(prog)
+	cs := C.CString(name)
 	defer C.free(unsafe.Pointer(cs))
 
-	if c_program = C.clCreateProgramWithSource(c.id, 1, &cs, (*C.size_t)(nil), &err); err != C.CL_SUCCESS {
-		return nil, Cl_error(err)
-	} else if err = C.clBuildProgram(c_program, 0, nil, nil, nil, nil); err != C.CL_SUCCESS {
-		C.clReleaseProgram(c_program)
+	if c_kernel = C.clCreateKernel(p.id, cs, &err); err != C.CL_SUCCESS {
 		return nil, Cl_error(err)
 	}
 
-	program := &Program{id: c_program}
-	runtime.SetFinalizer(program, (*Program).release)
+	kernel := &Kernel{id: c_kernel}
+	runtime.SetFinalizer(kernel, (*Kernel).release)
 
-	return program, nil
+	return kernel, nil
 }
 
 func (p *Program) release() error {

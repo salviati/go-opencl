@@ -177,3 +177,49 @@ func (c *Context) release() error {
 	}
 	return nil
 }
+
+func (c *Context) NewCommandQueue(device Device, param CommandQueueParameter) (*CommandQueue, error) {
+	var c_queue C.cl_command_queue
+	var err C.cl_int
+	if c_queue = C.clCreateCommandQueue(c.id, device.id, C.cl_command_queue_properties(param), &err); err != C.CL_SUCCESS {
+		return nil, Cl_error(err)
+	}
+	queue := &CommandQueue{id: c_queue}
+	runtime.SetFinalizer(queue, (*CommandQueue).release)
+
+	return queue, nil
+}
+
+func (c *Context) NewProgramFromSource(prog string) (*Program, error) {
+	var c_program C.cl_program
+	var err C.cl_int
+
+	cs := C.CString(prog)
+	defer C.free(unsafe.Pointer(cs))
+
+	if c_program = C.clCreateProgramWithSource(c.id, 1, &cs, (*C.size_t)(nil), &err); err != C.CL_SUCCESS {
+		return nil, Cl_error(err)
+	} else if err = C.clBuildProgram(c_program, 0, nil, nil, nil, nil); err != C.CL_SUCCESS {
+		C.clReleaseProgram(c_program)
+		return nil, Cl_error(err)
+	}
+
+	program := &Program{id: c_program}
+	runtime.SetFinalizer(program, (*Program).release)
+
+	return program, nil
+}
+
+func (c *Context) NewBuffer(flags BufferFlags, size uint32) (*Buffer, error) {
+	var c_buffer C.cl_mem
+	var err C.cl_int
+
+	if c_buffer = C.clCreateBuffer(c.id, C.cl_mem_flags(flags|cl_MEM_ALLOC_HOST_PTR), C.size_t(size), nil, &err); err != C.CL_SUCCESS {
+		return nil, Cl_error(err)
+	}
+
+	buffer := &Buffer{id: c_buffer}
+	runtime.SetFinalizer(buffer, (*Buffer).release)
+
+	return buffer, nil
+}
