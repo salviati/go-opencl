@@ -202,7 +202,7 @@ func Devices(t DeviceType) ([]Device, error) {
 	return devices, nil
 }
 
-func (device Device) Properties() (map[DeviceProperty]interface{}, error) {
+func (device *Device) Properties() (map[DeviceProperty]interface{}, error) {
 	props := make(map[DeviceProperty]interface{})
 	for _, prop := range DeviceProperties() {
 		if data, err := device.Property(prop); err == nil {
@@ -217,7 +217,7 @@ func (device Device) Properties() (map[DeviceProperty]interface{}, error) {
 	return props, nil
 }
 
-func (device Device) Property(prop DeviceProperty) (interface{}, error) {
+func (device *Device) Property(prop DeviceProperty) (interface{}, error) {
 	var data interface{}
 	var length C.size_t
 	var ret C.cl_int

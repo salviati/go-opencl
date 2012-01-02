@@ -58,7 +58,7 @@ func Platforms() ([]Platform, error) {
 	return platforms, nil
 }
 
-func (platform Platform) Properties() (map[PlatformProperty]string, error) {
+func (platform *Platform) Properties() (map[PlatformProperty]string, error) {
 	infos := make(map[PlatformProperty]string)
 	for _, param := range PlatformProperties() {
 		var err error
@@ -69,7 +69,7 @@ func (platform Platform) Properties() (map[PlatformProperty]string, error) {
 	return infos, nil
 }
 
-func (platform Platform) Property(prop PlatformProperty) (string, error) {
+func (platform *Platform) Property(prop PlatformProperty) (string, error) {
 	const bufsize = 1024
 	var buf [bufsize]C.char
 	var length C.size_t
@@ -80,7 +80,7 @@ func (platform Platform) Property(prop PlatformProperty) (string, error) {
 	return C.GoStringN(&buf[0], C.int(length)), nil
 }
 
-func (platform Platform) Devices(t DeviceType) ([]Device, error) {
+func (platform *Platform) Devices(t DeviceType) ([]Device, error) {
 	var num_devices C.cl_uint
 	if ret := C.clGetDeviceIDs(platform.id, C.cl_device_type(t),
 		0, (*C.cl_device_id)(nil), &num_devices); ret != C.CL_SUCCESS {
