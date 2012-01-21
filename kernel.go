@@ -1,4 +1,4 @@
-package opencl
+package cl
 
 /*
 #cgo CFLAGS: -I CL
