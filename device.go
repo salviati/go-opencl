@@ -24,6 +24,21 @@ const (
 	DEVICE_TYPE_ALL DeviceType = C.CL_DEVICE_TYPE_ALL
 )
 
+func (t DeviceType) String() string {
+	mesg := deviceTypeMesg[t]
+	if mesg == "" {
+		return t.String()
+	}
+	return mesg
+}
+
+var deviceTypeMesg = map[DeviceType]string{
+	DEVICE_TYPE_CPU:         "CPU",
+	DEVICE_TYPE_GPU:         "GPU",
+	DEVICE_TYPE_ACCELERATOR: "Accelerator",
+	//DEVICE_TYPE_CUSTOM: "Custom",
+}
+
 type DeviceProperty C.cl_device_info
 
 const (
