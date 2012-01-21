@@ -17,7 +17,7 @@ func getPlatform(t *testing.T) Platform {
 }
 
 func getCPUDevice(p Platform, t *testing.T) []Device {
-	if devices, err := p.Devices(CL_DEVICE_TYPE_CPU); err != nil {
+	if devices, err := p.Devices(DEVICE_TYPE_CPU); err != nil {
 		t.Fatal("Error querying platform devices:", err)
 	} else if len(devices) == 0 {
 		t.Fatal("No devices found")
@@ -28,7 +28,7 @@ func getCPUDevice(p Platform, t *testing.T) []Device {
 }
 
 func getContext(p Platform, d []Device, t *testing.T) *Context {
-	if context, err := NewContextOfDevices(map[ContextParameter]interface{}{CL_CONTEXT_PLATFORM: p}, d); err != nil {
+	if context, err := NewContextOfDevices(map[ContextParameter]interface{}{CONTEXT_PLATFORM: p}, d); err != nil {
 		t.Fatal("Error creating context:", err)
 	} else {
 		return context
@@ -55,7 +55,7 @@ func getKernel(p *Program, name string, t *testing.T) *Kernel {
 }
 
 func getQueue(c *Context, d Device, t *testing.T) *CommandQueue {
-	if queue, err := c.NewCommandQueue(d, CL_QUEUE_NIL); err != nil {
+	if queue, err := c.NewCommandQueue(d, QUEUE_NIL); err != nil {
 		t.Fatal("Error creating command queue:", err)
 	} else {
 		return queue
@@ -84,9 +84,9 @@ __kernel void hello(__global uchar *input, __global uchar *output)
 	kernel := getKernel(program, "hello", t)
 
 	var inBuf, outBuf *Buffer
-	if inBuf, err = context.NewBuffer(CL_MEM_READ_ONLY, 100); err != nil {
+	if inBuf, err = context.NewBuffer(MEM_READ_ONLY, 100); err != nil {
 		t.Fatal("Error creating in buffer:", err)
-	} else if outBuf, err = context.NewBuffer(CL_MEM_WRITE_ONLY, 100); err != nil {
+	} else if outBuf, err = context.NewBuffer(MEM_WRITE_ONLY, 100); err != nil {
 		t.Fatal("Error creating out buffer:", err)
 	}
 

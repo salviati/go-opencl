@@ -16,9 +16,9 @@ import (
 type CommandQueueParameter C.cl_command_queue_properties
 
 const (
-	CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE CommandQueueParameter = C.CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
-	CL_QUEUE_PROFILING_ENABLE              CommandQueueParameter = C.CL_QUEUE_PROFILING_ENABLE
-	CL_QUEUE_NIL                           CommandQueueParameter = 0
+	QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE CommandQueueParameter = C.CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
+	QUEUE_PROFILING_ENABLE              CommandQueueParameter = C.CL_QUEUE_PROFILING_ENABLE
+	QUEUE_NIL                           CommandQueueParameter = 0
 )
 
 type CommandQueue struct {

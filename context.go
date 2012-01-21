@@ -19,25 +19,25 @@ import (
 type ContextParameter C.cl_context_properties
 
 const (
-	CL_CONTEXT_PLATFORM ContextParameter = C.CL_CONTEXT_PLATFORM
+	CONTEXT_PLATFORM ContextParameter = C.CL_CONTEXT_PLATFORM
 )
 
 type ContextProperty C.cl_context_info
 
 const (
-	CL_CONTEXT_REFERENCE_COUNT ContextProperty = C.CL_CONTEXT_REFERENCE_COUNT
-	CL_CONTEXT_NUM_DEVICES     ContextProperty = C.CL_CONTEXT_NUM_DEVICES
-	CL_CONTEXT_DEVICES         ContextProperty = C.CL_CONTEXT_DEVICES
-	CL_CONTEXT_PROPERTIES      ContextProperty = C.CL_CONTEXT_PROPERTIES
-	//CL_CONTEXT_D3D10_PREFER_SHARED_RESOURCES_KHR ContextProperty = C.CL_CONTEXT_D3D10_PREFER_SHARED_RESOURCES_KHR
+	CONTEXT_REFERENCE_COUNT ContextProperty = C.CL_CONTEXT_REFERENCE_COUNT
+	CONTEXT_NUM_DEVICES     ContextProperty = C.CL_CONTEXT_NUM_DEVICES
+	CONTEXT_DEVICES         ContextProperty = C.CL_CONTEXT_DEVICES
+	CONTEXT_PROPERTIES      ContextProperty = C.CL_CONTEXT_PROPERTIES
+	//CONTEXT_D3D10_PREFER_SHARED_RESOURCES_KHR ContextProperty = C.CL_CONTEXT_D3D10_PREFER_SHARED_RESOURCES_KHR
 )
 
 func ContextProperties() []ContextProperty {
 	return []ContextProperty{
-		CL_CONTEXT_REFERENCE_COUNT,
-		CL_CONTEXT_NUM_DEVICES,
-		CL_CONTEXT_DEVICES,
-		CL_CONTEXT_PROPERTIES}
+		CONTEXT_REFERENCE_COUNT,
+		CONTEXT_NUM_DEVICES,
+		CONTEXT_DEVICES,
+		CONTEXT_PROPERTIES}
 }
 
 type Context struct {
@@ -51,7 +51,7 @@ func createParameters(params map[ContextParameter]interface{}) ([]C.cl_context_p
 		c_params[i] = C.cl_context_properties(param)
 
 		switch param {
-		case CL_CONTEXT_PLATFORM:
+		case CONTEXT_PLATFORM:
 			if v, ok := value.(Platform); ok {
 				c_params[i+1] = C.PlatformToContextParameter(v.id)
 			} else {
@@ -130,20 +130,20 @@ func (context *Context) Property(prop ContextProperty) (interface{}, error) {
 	var ret C.cl_int
 
 	switch prop {
-	/*case CL_CONTEXT_D3D10_PREFER_SHARED_RESOURCES_KHR:
+	/*case CONTEXT_D3D10_PREFER_SHARED_RESOURCES_KHR:
 	var val C.cl_bool
 	ret = C.clGetContextInfo(context.id, C.cl_context_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
 	data = val == C.CL_TRUE
 	*/
 
-	case CL_CONTEXT_REFERENCE_COUNT,
-		CL_CONTEXT_NUM_DEVICES:
+	case CONTEXT_REFERENCE_COUNT,
+		CONTEXT_NUM_DEVICES:
 		var val C.cl_uint
 		ret = C.clGetContextInfo(context.id, C.cl_context_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
 		data = val
 
-	case CL_CONTEXT_DEVICES:
-		if data, err := context.Property(CL_CONTEXT_NUM_DEVICES); err != nil {
+	case CONTEXT_DEVICES:
+		if data, err := context.Property(CONTEXT_NUM_DEVICES); err != nil {
 			return nil, err
 		} else {
 			num_devs := data.(C.cl_uint)
@@ -214,7 +214,7 @@ func (c *Context) NewBuffer(flags BufferFlags, size uint32) (*Buffer, error) {
 	var c_buffer C.cl_mem
 	var err C.cl_int
 
-	if c_buffer = C.clCreateBuffer(c.id, C.cl_mem_flags(flags|cl_MEM_ALLOC_HOST_PTR), C.size_t(size), nil, &err); err != C.CL_SUCCESS {
+	if c_buffer = C.clCreateBuffer(c.id, C.cl_mem_flags(flags|_MEM_ALLOC_HOST_PTR), C.size_t(size), nil, &err); err != C.CL_SUCCESS {
 		return nil, Cl_error(err)
 	}
 
