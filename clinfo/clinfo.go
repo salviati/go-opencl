@@ -25,17 +25,12 @@ import (
 func main() {
 	fmt.Println("Number of Platforms:", len(cl.Platforms))
 	for _, platform := range cl.Platforms {
-		properties, err := platform.Properties()
-		if err != nil {
-			fmt.Println("Error reading platform properties:", err, "\n\n")
-			continue
-		}
-		fmt.Println("  Platform Profile:", properties[cl.PLATFORM_PROFILE])
-		fmt.Println("  Platform Version:", properties[cl.PLATFORM_VERSION])
-		fmt.Println("  Platform Name:", properties[cl.PLATFORM_NAME])
-		fmt.Println("  Platform Vendor:", properties[cl.PLATFORM_VENDOR])
-		fmt.Println("  Platform Extensions:", properties[cl.PLATFORM_EXTENSIONS], "\n\n")
-		fmt.Println("  Platform Name:", properties[cl.PLATFORM_NAME])
+		fmt.Println("  Platform Profile:", platform.Property(cl.PLATFORM_PROFILE))
+		fmt.Println("  Platform Version:", platform.Property(cl.PLATFORM_VERSION))
+		fmt.Println("  Platform Name:", platform.Property(cl.PLATFORM_NAME))
+		fmt.Println("  Platform Vendor:", platform.Property(cl.PLATFORM_VENDOR))
+		fmt.Println("  Platform Extensions:", platform.Property(cl.PLATFORM_EXTENSIONS), "\n\n")
+		fmt.Println("  Platform Name:", platform.Property(cl.PLATFORM_NAME))
 
 		fmt.Println("Number of devices:", len(platform.Devices))
 		for _, device := range platform.Devices {

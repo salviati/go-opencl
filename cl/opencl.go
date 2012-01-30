@@ -57,7 +57,11 @@ func init() {
 			continue
 		}
 
-		platform := Platform{id: pid, Devices: make([]Device, count)}
+		platform := Platform{
+			id:         pid,
+			Devices:    make([]Device, count),
+			Properties: make(map[PlatformProperty]string),
+		}
 		for i, did := range c_devices {
 			platform.Devices[i].id = did
 		}
