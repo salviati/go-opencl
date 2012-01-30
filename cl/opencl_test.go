@@ -25,25 +25,18 @@ import (
 )
 
 func getPlatform(t *testing.T) Platform {
-	if platforms, err := Platforms(); err != nil {
-		t.Fatal("Error getting platform:", err)
-	} else if len(platforms) == 0 {
+	if len(Platforms) == 0 {
 		t.Fatal("No platforms found")
-	} else {
-		return platforms[0]
 	}
-	return Platform{}
+	return Platforms[0]
 }
 
 func getCPUDevice(p Platform, t *testing.T) []Device {
-	if devices, err := p.Devices(DEVICE_TYPE_CPU); err != nil {
-		t.Fatal("Error querying platform devices:", err)
-	} else if len(devices) == 0 {
+	fmt.Println("Devices:", len(p.Devices))
+	if len(p.Devices) == 0 {
 		t.Fatal("No devices found")
-	} else {
-		return devices[:1]
 	}
-	return nil
+	return p.Devices[:1]
 }
 
 func getContext(p Platform, d []Device, t *testing.T) *Context {

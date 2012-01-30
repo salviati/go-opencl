@@ -219,23 +219,6 @@ type Device struct {
 	id C.cl_device_id
 }
 
-func Devices(t DeviceType) ([]Device, error) {
-	platforms, err := Platforms()
-	if err != nil {
-		return nil, err
-	}
-
-	var devices []Device
-	for _, platform := range platforms {
-		if platform_devs, err := platform.Devices(t); err != nil {
-			return devices, err
-		} else {
-			devices = append(devices, platform_devs...)
-		}
-	}
-	return devices, nil
-}
-
 func (device *Device) Properties() (map[DeviceProperty]interface{}, error) {
 	props := make(map[DeviceProperty]interface{})
 	for _, prop := range DeviceProperties() {

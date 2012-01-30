@@ -32,6 +32,39 @@ import (
 	"fmt"
 )
 
+var Platforms []Platform
+
+func init() {
+
+	var count C.cl_uint
+	if ret := C.clGetPlatformIDs(0, (*C.cl_platform_id)(nil), &count); ret != C.CL_SUCCESS || count == 0 {
+		return
+	}
+
+	c_platforms := make([]C.cl_platform_id, count)
+	if ret := C.clGetPlatformIDs(count, &c_platforms[0], &count); ret != C.CL_SUCCESS || count == 0 {
+		return
+	}
+	Platforms = make([]Platform, 0, count)
+
+	for _, pid := range c_platforms {
+		if ret := C.clGetDeviceIDs(pid, C.cl_device_type(DEVICE_TYPE_ALL), 0, (*C.cl_device_id)(nil), &count); ret != C.CL_SUCCESS || count == 0 {
+			continue
+		}
+
+		c_devices := make([]C.cl_device_id, count)
+		if ret := C.clGetDeviceIDs(pid, C.cl_device_type(DEVICE_TYPE_ALL), count, &c_devices[0], &count); ret != C.CL_SUCCESS || count == 0 {
+			continue
+		}
+
+		platform := Platform{id: pid, Devices: make([]Device, count)}
+		for i, did := range c_devices {
+			platform.Devices[i].id = did
+		}
+		Platforms = append(Platforms, platform)
+	}
+}
+
 type Cl_error C.cl_int
 
 func (e Cl_error) Error() string {

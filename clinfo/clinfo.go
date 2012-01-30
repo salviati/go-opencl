@@ -20,18 +20,11 @@ package main
 import (
 	"fmt"
 	"github.com/tones111/go-opencl/cl"
-	"syscall"
 )
 
 func main() {
-	platforms, err := cl.Platforms()
-	if err != nil {
-		fmt.Println("Error probing platforms:", err)
-		syscall.Exit(1)
-	}
-
-	fmt.Println("Number of Platforms:", len(platforms))
-	for _, platform := range platforms {
+	fmt.Println("Number of Platforms:", len(cl.Platforms))
+	for _, platform := range cl.Platforms {
 		properties, err := platform.Properties()
 		if err != nil {
 			fmt.Println("Error reading platform properties:", err, "\n\n")
@@ -44,14 +37,8 @@ func main() {
 		fmt.Println("  Platform Extensions:", properties[cl.PLATFORM_EXTENSIONS], "\n\n")
 		fmt.Println("  Platform Name:", properties[cl.PLATFORM_NAME])
 
-		devices, err := platform.Devices(cl.DEVICE_TYPE_ALL)
-		if err != nil {
-			fmt.Println("Error probing devices:", err, "\n\n")
-			continue
-		}
-
-		fmt.Println("Number of devices:", len(devices))
-		for _, device := range devices {
+		fmt.Println("Number of devices:", len(platform.Devices))
+		for _, device := range platform.Devices {
 			properties, err := device.Properties()
 			if err != nil {
 				fmt.Println("Error reading device properties:", err, "\n\n")
