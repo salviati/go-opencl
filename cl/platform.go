@@ -45,7 +45,7 @@ const (
 type Platform struct {
 	id         C.cl_platform_id
 	Devices    []Device
-	Properties map[PlatformProperty]string
+	properties map[PlatformProperty]string
 }
 
 func GetPlatforms() []Platform {
@@ -73,10 +73,11 @@ func GetPlatforms() []Platform {
 		platform := Platform{
 			id:         pid,
 			Devices:    make([]Device, count),
-			Properties: make(map[PlatformProperty]string),
+			properties: make(map[PlatformProperty]string),
 		}
 		for i, did := range c_devices {
 			platform.Devices[i].id = did
+			platform.Devices[i].properties = make(map[DeviceProperty]interface{})
 		}
 		platforms = append(platforms, platform)
 	}
@@ -84,7 +85,7 @@ func GetPlatforms() []Platform {
 }
 
 func (p *Platform) Property(prop PlatformProperty) string {
-	if value, ok := p.Properties[prop]; ok {
+	if value, ok := p.properties[prop]; ok {
 		return value
 	}
 
@@ -97,6 +98,6 @@ func (p *Platform) Property(prop PlatformProperty) string {
 	if ret := C.clGetPlatformInfo(p.id, C.cl_platform_info(prop), count, unsafe.Pointer(&buf[0]), &count); ret != C.CL_SUCCESS || count < 1 {
 		return ""
 	}
-	p.Properties[prop] = C.GoStringN(&buf[0], C.int(count-1))
-	return p.Properties[prop]
+	p.properties[prop] = C.GoStringN(&buf[0], C.int(count-1))
+	return p.properties[prop]
 }

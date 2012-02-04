@@ -137,104 +137,16 @@ const (
 	DRIVER_VERSION          DeviceProperty = C.CL_DRIVER_VERSION
 )
 
-func DeviceProperties() []DeviceProperty {
-	return []DeviceProperty{
-		DEVICE_ADDRESS_BITS,
-		DEVICE_AVAILABLE,
-		//DEVICE_BUILT_IN_KERNELS,
-		DEVICE_COMPILER_AVAILABLE,
-		//DEVICE_DOUBLE_FP_CONFIG,
-		DEVICE_ENDIAN_LITTLE,
-		DEVICE_ERROR_CORRECTION_SUPPORT,
-		DEVICE_EXECUTION_CAPABILITIES,
-		DEVICE_EXTENSIONS,
-		DEVICE_GLOBAL_MEM_CACHE_SIZE,
-		DEVICE_GLOBAL_MEM_CACHE_TYPE,
-		DEVICE_GLOBAL_MEM_CACHELINE_SIZE,
-		DEVICE_GLOBAL_MEM_SIZE,
-		//DEVICE_HALF_FP_CONFIG,
-		DEVICE_HOST_UNIFIED_MEMORY,
-		DEVICE_IMAGE_SUPPORT,
-		DEVICE_IMAGE2D_MAX_HEIGHT,
-		DEVICE_IMAGE2D_MAX_WIDTH,
-		DEVICE_IMAGE3D_MAX_DEPTH,
-		DEVICE_IMAGE3D_MAX_HEIGHT,
-		DEVICE_IMAGE3D_MAX_WIDTH,
-		//DEVICE_IMAGE_MAX_BUFFER_SIZE,
-		//DEVICE_IMAGE_MAX_ARRAY_SIZE,
-		//DEVICE_LINKER_AVAILABLE,
-		DEVICE_LOCAL_MEM_SIZE,
-		DEVICE_LOCAL_MEM_TYPE,
-		DEVICE_MAX_CLOCK_FREQUENCY,
-		DEVICE_MAX_COMPUTE_UNITS,
-		DEVICE_MAX_CONSTANT_ARGS,
-		DEVICE_MAX_CONSTANT_BUFFER_SIZE,
-		DEVICE_MAX_MEM_ALLOC_SIZE,
-		DEVICE_MAX_PARAMETER_SIZE,
-		DEVICE_MAX_READ_IMAGE_ARGS,
-		DEVICE_MAX_SAMPLERS,
-		DEVICE_MAX_WORK_GROUP_SIZE,
-		DEVICE_MAX_WORK_ITEM_DIMENSIONS,
-		DEVICE_MAX_WORK_ITEM_SIZES,
-		DEVICE_MAX_WRITE_IMAGE_ARGS,
-		DEVICE_MEM_BASE_ADDR_ALIGN,
-		DEVICE_MIN_DATA_TYPE_ALIGN_SIZE,
-		DEVICE_NAME,
-		DEVICE_NATIVE_VECTOR_WIDTH_CHAR,
-		DEVICE_NATIVE_VECTOR_WIDTH_SHORT,
-		DEVICE_NATIVE_VECTOR_WIDTH_INT,
-		DEVICE_NATIVE_VECTOR_WIDTH_LONG,
-		DEVICE_NATIVE_VECTOR_WIDTH_FLOAT,
-		DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE,
-		DEVICE_NATIVE_VECTOR_WIDTH_HALF,
-		DEVICE_OPENCL_C_VERSION,
-		//DEVICE_PARENT_DEVICE,
-		//DEVICE_PARTITION_MAX_SUB_DEVICES,
-		//DEVICE_PARTITION_PROPERTIES,
-		//DEVICE_PARTITION_AFFINITY_DOMAIN,
-		//DEVICE_PARTITION_TYPE,
-		DEVICE_PLATFORM,
-		DEVICE_PREFERRED_VECTOR_WIDTH_CHAR,
-		DEVICE_PREFERRED_VECTOR_WIDTH_SHORT,
-		DEVICE_PREFERRED_VECTOR_WIDTH_INT,
-		DEVICE_PREFERRED_VECTOR_WIDTH_LONG,
-		DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT,
-		DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE,
-		DEVICE_PREFERRED_VECTOR_WIDTH_HALF,
-		//DEVICE_PRINTF_BUFFER_SIZE,
-		//DEVICE_PREFERRED_INTEROP_USER_SYNC,
-		DEVICE_PROFILE,
-		DEVICE_PROFILING_TIMER_RESOLUTION,
-		DEVICE_QUEUE_PROPERTIES,
-		//DEVICE_REFERENCE_COUNT,
-		DEVICE_SINGLE_FP_CONFIG,
-		DEVICE_TYPE,
-		DEVICE_VENDOR,
-		DEVICE_VENDOR_ID,
-		DEVICE_VERSION,
-		DRIVER_VERSION}
-}
-
 type Device struct {
-	id C.cl_device_id
+	id         C.cl_device_id
+	properties map[DeviceProperty]interface{}
 }
 
-func (device *Device) Properties() (map[DeviceProperty]interface{}, error) {
-	props := make(map[DeviceProperty]interface{})
-	for _, prop := range DeviceProperties() {
-		if data, err := device.Property(prop); err == nil {
-			props[prop] = data
-		} else if err != Cl_error(C.CL_INVALID_VALUE) {
-			return nil, err
-		}
+func (d *Device) Property(prop DeviceProperty) interface{} {
+	if value, ok := d.properties[prop]; ok {
+		return value
 	}
-	if len(props) == 0 {
-		return nil, Cl_error(C.CL_INVALID_VALUE)
-	}
-	return props, nil
-}
 
-func (device *Device) Property(prop DeviceProperty) (interface{}, error) {
 	var data interface{}
 	var length C.size_t
 	var ret C.cl_int
@@ -249,7 +161,7 @@ func (device *Device) Property(prop DeviceProperty) (interface{}, error) {
 		//DEVICE_LINKER_AVAILABLE,
 		//DEVICE_PREFERRED_INTEROP_USER_SYNC:
 		var val C.cl_bool
-		ret = C.clGetDeviceInfo(device.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
+		ret = C.clGetDeviceInfo(d.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
 		data = val == C.CL_TRUE
 
 	case DEVICE_ADDRESS_BITS,
@@ -280,7 +192,7 @@ func (device *Device) Property(prop DeviceProperty) (interface{}, error) {
 		//DEVICE_REFERENCE_COUNT,
 		DEVICE_VENDOR_ID:
 		var val C.cl_uint
-		ret = C.clGetDeviceInfo(device.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
+		ret = C.clGetDeviceInfo(d.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
 		data = val
 
 	case DEVICE_IMAGE2D_MAX_HEIGHT,
@@ -295,7 +207,7 @@ func (device *Device) Property(prop DeviceProperty) (interface{}, error) {
 		//DEVICE_PRINTF_BUFFER_SIZE,
 		DEVICE_PROFILING_TIMER_RESOLUTION:
 		var val C.size_t
-		ret = C.clGetDeviceInfo(device.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
+		ret = C.clGetDeviceInfo(d.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
 		data = val
 
 	case DEVICE_GLOBAL_MEM_CACHE_SIZE,
@@ -304,22 +216,22 @@ func (device *Device) Property(prop DeviceProperty) (interface{}, error) {
 		DEVICE_MAX_CONSTANT_BUFFER_SIZE,
 		DEVICE_MAX_MEM_ALLOC_SIZE:
 		var val C.cl_ulong
-		ret = C.clGetDeviceInfo(device.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
+		ret = C.clGetDeviceInfo(d.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
 		data = val
 
 	/*case DEVICE_PLATFORM:
 	var val C.cl_platform_id
-	ret = C.clGetDeviceInfo(device.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
+	ret = C.clGetDeviceInfo(d.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
 	data = Platform{id: val}*/
 
 	/*case DEVICE_PARENT_DEVICE:
 	var val C.cl_device_id
-	ret = C.clGetDeviceInfo(device.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
+	ret = C.clGetDeviceInfo(d.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
 	data = Device{id: val}*/
 
 	case DEVICE_TYPE:
 		var val C.cl_device_type
-		ret = C.clGetDeviceInfo(device.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
+		ret = C.clGetDeviceInfo(d.id, C.cl_device_info(prop), C.size_t(unsafe.Sizeof(val)), unsafe.Pointer(&val), &length)
 		data = DeviceType(val)
 
 	case //DEVICE_BUILT_IN_KERNELS,
@@ -330,17 +242,25 @@ func (device *Device) Property(prop DeviceProperty) (interface{}, error) {
 		DEVICE_VENDOR,
 		DEVICE_VERSION,
 		DRIVER_VERSION:
-		const bufsize = 1024
-		var buf [bufsize]C.char
-		ret = C.clGetDeviceInfo(device.id, C.cl_device_info(prop), bufsize, unsafe.Pointer(&buf[0]), &length)
-		data = C.GoStringN(&buf[0], C.int(length))
+		if ret = C.clGetDeviceInfo(d.id, C.cl_device_info(prop), 0, nil, &length); ret != C.CL_SUCCESS || length < 1 {
+			data = ""
+			break
+		}
+
+		buf := make([]C.char, length)
+		if ret = C.clGetDeviceInfo(d.id, C.cl_device_info(prop), length, unsafe.Pointer(&buf[0]), &length); ret != C.CL_SUCCESS || length < 1 {
+			data = ""
+			break
+		}
+		data = C.GoStringN(&buf[0], C.int(length-1))
 
 	default:
-		return nil, Cl_error(C.CL_INVALID_VALUE)
+		return nil
 	}
 
 	if ret != C.CL_SUCCESS {
-		return nil, Cl_error(ret)
+		return nil
 	}
-	return data, nil
+	d.properties[prop] = data
+	return d.properties[prop]
 }
