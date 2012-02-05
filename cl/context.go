@@ -233,7 +233,7 @@ func (c *Context) NewBuffer(flags BufferFlags, size uint32) (*Buffer, error) {
 	var c_buffer C.cl_mem
 	var err C.cl_int
 
-	if c_buffer = C.clCreateBuffer(c.id, C.cl_mem_flags(flags|_MEM_ALLOC_HOST_PTR), C.size_t(size), nil, &err); err != C.CL_SUCCESS {
+	if c_buffer = C.clCreateBuffer(c.id, C.cl_mem_flags(flags), C.size_t(size), nil, &err); err != C.CL_SUCCESS {
 		return nil, Cl_error(err)
 	}
 

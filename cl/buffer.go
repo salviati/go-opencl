@@ -33,10 +33,12 @@ import ()
 type BufferFlags C.cl_mem_flags
 
 const (
-	MEM_READ_WRITE      BufferFlags = C.CL_MEM_READ_WRITE
-	MEM_WRITE_ONLY      BufferFlags = C.CL_MEM_WRITE_ONLY
-	MEM_READ_ONLY       BufferFlags = C.CL_MEM_READ_ONLY
-	_MEM_ALLOC_HOST_PTR BufferFlags = C.CL_MEM_ALLOC_HOST_PTR
+	MEM_READ_WRITE BufferFlags = C.CL_MEM_READ_WRITE
+	MEM_WRITE_ONLY BufferFlags = C.CL_MEM_WRITE_ONLY
+	MEM_READ_ONLY  BufferFlags = C.CL_MEM_READ_ONLY
+	//MEM_USE_HOST_PTR   BufferFlags = C.CL_MEM_USE_HOST_PTR
+	MEM_ALLOC_HOST_PTR BufferFlags = C.CL_MEM_ALLOC_HOST_PTR
+	//MEM_COPY_HOST_PTR  BufferFlags = C.CL_MEM_COPY_HOST_PTR
 )
 
 type Buffer struct {

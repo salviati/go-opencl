@@ -66,15 +66,9 @@ func (cq *CommandQueue) EnqueueKernel(k *Kernel, offset uint, gsize uint, lsize 
 }
 
 func (cq *CommandQueue) EnqueueReadBuffer(buf *Buffer, offset uint32, size uint32) ([]byte, error) {
-	c_bytes := make([]byte, size)
-	if ret := C.clEnqueueReadBuffer(cq.id, buf.id, C.CL_TRUE, C.size_t(offset), C.size_t(size), unsafe.Pointer(&c_bytes[0]), 0, nil, nil); ret != C.CL_SUCCESS {
-		return nil, Cl_error(ret)
-	}
-
-	// Copy the buffer in case the garbage collector moves the slice in memory
 	bytes := make([]byte, size)
-	for i, v := range c_bytes {
-		bytes[i] = v
+	if ret := C.clEnqueueReadBuffer(cq.id, buf.id, C.CL_TRUE, C.size_t(offset), C.size_t(size), unsafe.Pointer(&bytes[0]), 0, nil, nil); ret != C.CL_SUCCESS {
+		return nil, Cl_error(ret)
 	}
 	return bytes, nil
 }
