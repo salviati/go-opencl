@@ -249,13 +249,13 @@ func (c *Context) NewImage2D(flags MemFlags, order ChannelOrder, dataType Channe
 
 	format := new(C.cl_image_format)
 	format.image_channel_order = C.cl_channel_order(order)
-	format.image_channel_data_type = C.cl_channel_type(order)
+	format.image_channel_data_type = C.cl_channel_type(dataType)
 
 	if c_buffer = C.clCreateImage2D(c.id, C.cl_mem_flags(flags), format, C.size_t(width), C.size_t(height), C.size_t(rowPitch), unsafe.Pointer(data), &err); err != C.CL_SUCCESS {
 		return nil, Cl_error(err)
 	}
 
-	image := &Image{id: c_buffer}
+	image := &Image{id: c_buffer, w: width, h: height, d: 0}
 	runtime.SetFinalizer(image, (*Image).release)
 
 	return image, nil
@@ -267,7 +267,7 @@ func (c *Context) NewImage3D(flags MemFlags, order ChannelOrder, dataType Channe
 
 	format := new(C.cl_image_format)
 	format.image_channel_order = C.cl_channel_order(order)
-	format.image_channel_data_type = C.cl_channel_type(order)
+	format.image_channel_data_type = C.cl_channel_type(dataType)
 
 	if c_buffer = C.clCreateImage3D(c.id, C.cl_mem_flags(flags), format, C.size_t(width), C.size_t(height), C.size_t(depth), C.size_t(rowPitch), C.size_t(slicePitch), unsafe.Pointer(data), &err); err != C.CL_SUCCESS {
 		return nil, Cl_error(err)

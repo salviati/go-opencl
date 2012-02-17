@@ -70,6 +70,7 @@ const (
 
 type Image struct {
 	id C.cl_mem
+	w,h,d uint32
 } 
 
 func (im *Image) release() error {
@@ -77,6 +78,28 @@ func (im *Image) release() error {
 	im.id = nil
 	return err
 }
+
+/* cl_image_info */
+type ImageInfo C.cl_image_info
+
+const (
+	IMAGE_FORMAT ImageInfo= C.CL_IMAGE_FORMAT
+	IMAGE_ELEMENT_SIZE ImageInfo= C.CL_IMAGE_ELEMENT_SIZE
+	IMAGE_ROW_PITCH ImageInfo= C.CL_IMAGE_ROW_PITCH
+	IMAGE_SLICE_PITCH ImageInfo= C.CL_IMAGE_SLICE_PITCH
+	IMAGE_WIDTH ImageInfo= C.CL_IMAGE_WIDTH
+	IMAGE_HEIGHT ImageInfo= C.CL_IMAGE_HEIGHT
+	IMAGE_DEPTH ImageInfo= C.CL_IMAGE_DEPTH
+)
+
+func (im *Image) Info(param ImageInfo) (uint64, error) {
+	var ret uint64
+	if err := C.clGetImageInfo(im.id, C.cl_image_info(param), C.size_t(8), unsafe.Pointer(&ret), nil); err != C.CL_SUCCESS {
+		return 0, Cl_error(err)
+	}
+	return ret, nil
+}
+
 
 type Sampler struct {
 	id C.cl_sampler
