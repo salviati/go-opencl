@@ -1,8 +1,20 @@
+/*
+	  NOTE:
+
+		https://github.com/banthar/Go-SDL doesn't implement CreateRGBSurfaceFrom, since pixels may be garbage collected in general.
+
+		func CreateRGBSurfaceFrom(pixels *byte, width int, height int, depth int, pitch int, Rmask uint32, Gmask uint32, Bmask uint32, Amask uint32) *Surface {
+			p := C.SDL_CreateRGBSurfaceFrom(unsafe.Pointer(pixels), C.int(width), C.int(height), C.int(depth), C.int(pitch),
+				C.Uint32(Rmask), C.Uint32(Gmask), C.Uint32(Bmask), C.Uint32(Amask))
+			return (*Surface)(cast(p))
+		}
+*/
 package main
 
 import (
+	"errors"
 	"flag"
-	cl "github.com/salviati/go-opencl/cl"
+	"github.com/salviati/go-opencl/cl"
 	"io/ioutil"
 	"log"
 	"os"
@@ -44,10 +56,10 @@ func mustReadFile(path string) string {
 }
 
 var (
-	c  *cl.Context
-	cq *cl.CommandQueue
-	p  *cl.Program
-	k  *cl.Kernel
+	c                             *cl.Context
+	cq                            *cl.CommandQueue
+	p                             *cl.Program
+	k_shrink, k_enlarge, k_rotate *cl.Kernel
 )
 
 // init OpenCL & load the program
@@ -65,12 +77,22 @@ func initAndPrepCL() error {
 		return err
 	}
 
-	p, err = c.NewProgramFromSource(mustReadFile("rotate.cl"))
+	p, err = c.NewProgramFromSource(mustReadFile("image.cl"))
 	if err != nil {
 		return err
 	}
 
-	k, err = p.NewKernelNamed("rotateImage")
+	k_shrink, err = p.NewKernelNamed("image_shrink")
+	if err != nil {
+		return err
+	}
+
+	k_enlarge, err = p.NewKernelNamed("image_enlarge")
+	if err != nil {
+		return err
+	}
+
+	k_rotate, err = p.NewKernelNamed("image_rotate")
 	if err != nil {
 		return err
 	}
@@ -78,12 +100,84 @@ func initAndPrepCL() error {
 	return nil
 }
 
+func imageCall(k *cl.Kernel, s *sdl.Surface, dw, dh uint32, va ...interface{}) (*sdl.Surface, error) {
+	order := cl.RGBA
+	elemSize := 4
+
+	src, err := c.NewImage2D(cl.MEM_READ_ONLY|cl.MEM_USE_HOST_PTR, order, cl.UNSIGNED_INT8,
+		uint32(s.W), uint32(s.H), uint32(s.Pitch), s.Pixels)
+	if err != nil {
+		return nil, err
+	}
+
+	dst, err := c.NewImage2D(cl.MEM_WRITE_ONLY, order, cl.UNSIGNED_INT8,
+		dw, dh, 0, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = k.SetArg(0, src)
+	if err != nil {
+		return nil, err
+	}
+
+	err = k.SetArg(1, dst)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, v := range va {
+		err = k.SetArg(uint(i+2), v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	empty := make([]cl.Size, 0)
+	gsize := []cl.Size{cl.Size(dw), cl.Size(dh)}
+	err = cq.EnqueueKernel(k, empty, gsize, empty)
+
+	pixels, err := cq.EnqueueReadImage(dst, [3]cl.Size{0, 0, 0}, [3]cl.Size{cl.Size(dw), cl.Size(dh), 1}, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	d := sdl.CreateRGBSurfaceFrom(&pixels[0],
+		int(dw), int(dh), int(elemSize*8), int(elemSize)*int(dw),
+		s.Format.Rmask, s.Format.Gmask, s.Format.Bmask, s.Format.Amask,
+	)
+
+	if d == nil {
+		return nil, errors.New(sdl.GetError())
+	}
+
+	return d, nil
+}
+
+func shrink(s *sdl.Surface, factorx, factory float32) (*sdl.Surface, error) {
+	dw := uint32(float32(s.W) / factorx)
+	dh := uint32(float32(s.H) / factory)
+	return imageCall(k_shrink, s, dw, dh, factorx, factory)
+}
+
+func enlarge(s *sdl.Surface, factorx, factory float32) (*sdl.Surface, error) {
+	dw := uint32(float32(s.W) * factorx)
+	dh := uint32(float32(s.H) * factory)
+	return imageCall(k_enlarge, s, dw, dh, factorx, factory)
+}
+
+func rotate(s *sdl.Surface, angle float32) (*sdl.Surface, error) {
+	dw := uint32(s.W)
+	dh := uint32(s.H)
+	return imageCall(k_rotate, s, dw, dh, angle)
+}
+
 func main() {
 	if sdl.Init(sdl.INIT_EVERYTHING) != 0 {
 		panic(sdl.GetError())
 	}
 	defer sdl.Quit()
-	
+
 	image0 := sdl.Load(*file)
 	if image0 == nil {
 		panic(sdl.GetError())
@@ -100,25 +194,6 @@ func main() {
 	err := initAndPrepCL()
 	check(err)
 
-	imageIn, err := c.NewImage2D(cl.MEM_READ_ONLY|cl.MEM_USE_HOST_PTR, cl.RGBA, cl.UNSIGNED_INT8,
-		uint32(image.W), uint32(image.H), uint32(image.Pitch), image.Pixels)
-	check(err)
-
-	imageOut, err := c.NewImage2D(cl.MEM_WRITE_ONLY, cl.RGBA, cl.UNSIGNED_INT8,
-		uint32(image.W), uint32(image.H), 0, nil)
-	check(err)
-
-	elemSize, err := imageOut.Info(cl.IMAGE_ELEMENT_SIZE)
-
-	/*
-		https://github.com/banthar/Go-SDL doesn't implement CreateRGBSurfaceFrom, since pixels may be garbage collected in general.
-
-		func CreateRGBSurfaceFrom(pixels *byte, width int, height int, depth int, pitch int, Rmask uint32, Gmask uint32, Bmask uint32, Amask uint32) *Surface {
-			p := C.SDL_CreateRGBSurfaceFrom(unsafe.Pointer(pixels), C.int(width), C.int(height), C.int(depth), C.int(pitch),
-				C.Uint32(Rmask), C.Uint32(Gmask), C.Uint32(Bmask), C.Uint32(Amask))
-			return (*Surface)(cast(p))
-		}
-	*/
 	e := new(sdl.Event)
 	angle := float32(0)
 	for running := true; running; angle += 0.001 {
@@ -135,26 +210,11 @@ func main() {
 			}
 		}
 
-		err = k.SetArg(0, imageIn)
+		news, err := rotate(image, angle)
 		check(err)
-
-		err = k.SetArg(1, imageOut)
-		check(err)
-
-		err = k.SetArg(2, angle)
-		check(err)
-
-		empty := make([]cl.Size, 0)
-		gsize := []cl.Size{cl.Size(image.W), cl.Size(image.H)}
-		err = cq.EnqueueKernel(k, empty, gsize, empty)
-
-		pixels, err := cq.EnqueueReadImage(imageOut, [3]cl.Size{0, 0, 0}, [3]cl.Size{cl.Size(image.W), cl.Size(image.H), 1}, 0, 0)
-		check(err)
-
-		rotated := sdl.CreateRGBSurfaceFrom(&pixels[0], int(image.W), int(image.H), int(elemSize*8), int(elemSize)*int(image.W), image.Format.Rmask, image.Format.Gmask, image.Format.Bmask, image.Format.Amask)
 
 		screen.FillRect(nil, 0)
-		screen.Blit(&sdl.Rect{0, 0, 0, 0}, rotated, nil)
+		screen.Blit(&sdl.Rect{0, 0, 0, 0}, news, nil)
 		screen.Flip()
 		sdl.Delay(25)
 	}
