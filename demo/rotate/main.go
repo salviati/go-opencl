@@ -137,6 +137,40 @@ func imageCall(dstW, dstH uint32, kernelName string, src, dst *cl.Image, va ...i
 	return pixels, nil
 }
 
+type matrix []float32
+
+func R(angle float32) matrix {
+	s64,c64 := math.Sincos(float64(angle))
+	s:=float32(s64); c:=float32(c64)
+
+	return []float32{c,-s, s,c}
+}
+
+func S(sx, sy float32) matrix {
+	return []float32{sx,0,0,sy}
+}
+
+func H(hx, hy float32) matrix {
+	return []float32{1,hx,hy,1}
+}
+
+func (m matrix) inv() {
+	det := m[0]*m[3]-m[1]*m[2]
+	m[1], m[2] = -m[1]/det, -m[2]/det
+	m[0], m[3] = m[3]/det, m[0]/det
+}
+
+func mul(a,b matrix) matrix {
+	return []float32{
+		a[0]*b[0]+a[1]*b[2],
+		a[0]*b[1]+a[1]*b[3],
+		a[2]*b[0]+a[3]*b[2],
+		a[2]*b[1]+a[3]*b[3],
+	}
+}
+
+
+
 func main() {
 	if sdl.Init(sdl.INIT_EVERYTHING) != 0 {
 		panic(sdl.GetError())
@@ -196,11 +230,10 @@ func main() {
 		//pixels, err := imageCall(dstW, dstH, "image_recscale", src, dst, 1/factorx, 1/factory)
 
 		//pixels, err := imageCall(dstW, dstH, "image_rotate", src, dst, angle)
-		s64,c64 := math.Sincos(float64(angle))
-		s:=float32(s64); c:=float32(c64)
+		m := mul(S(1.2,1.2), R(angle))
 		off := []float32{float32(dstW/2), float32(dstH/2)}
 		pixels, err := imageCall(dstW, dstH, "image_affine2", src, dst,
-						[]float32{c,-s}, []float32{s,c},
+						[]float32(m[0:2]), []float32(m[2:4]),
 						off, off)
 		check(err)
 
