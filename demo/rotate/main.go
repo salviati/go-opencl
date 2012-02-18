@@ -32,7 +32,7 @@ var (
 )
 
 var kernelNames = []string{
-	"image_scale", "image_rotate",
+	"image_recscale", "image_rotate",
 	"image_flip_h", "image_flip_v", "image_flip_hv",
 }
 
@@ -192,7 +192,7 @@ func main() {
 		}
 
 		pixels, err := imageCall(dstW, dstH, "image_rotate", src, dst, angle)
-		//pixels, err := imageCall(dstW, dstH, "image_scale", src, dst, factorx, factory)
+		//pixels, err := imageCall(dstW, dstH, "image_recscale", src, dst, 1/factorx, 1/factory)
 		check(err)
 
 		news := sdl.CreateRGBSurfaceFrom(&pixels[0],

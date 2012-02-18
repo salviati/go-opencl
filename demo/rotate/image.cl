@@ -1,8 +1,9 @@
 constant sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_LINEAR;
 
-__kernel void image_scale(read_only image2d_t src, write_only image2d_t dst, float factorx, float factory) {
+// recfactorx = 1/factorx ---taking a division outside of the "loop".
+__kernel void image_recscale(__read_only image2d_t src, __write_only image2d_t dst, float recfactorx, float recfactory) {
 	int2 p = {get_global_id(0), get_global_id(1)};
-	float2 q = {convert_float(get_global_id(0))/factorx, convert_float(get_global_id(1))/factory};
+	float2 q = {convert_float(get_global_id(0))*recfactorx, convert_float(get_global_id(1))*recfactory};
 
 	uint4 pixel = read_imageui(src, sampler, q);
 	write_imageui(dst, p, pixel);
