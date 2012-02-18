@@ -12,6 +12,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"github.com/salviati/go-opencl/cl"
 	"io/ioutil"
@@ -24,9 +25,19 @@ var file = flag.String("t", "lenna.png", "Test file")
 
 var (
 	platform cl.Platform
+	c        *cl.Context
+	cq       *cl.CommandQueue
+	p        *cl.Program
+	kernels  map[string]*cl.Kernel
 )
 
+var kernelNames = []string{
+	"image_shrink", "image_enlarge", "image_rotate", 
+	"image_flip_h", "image_flip_v", "image_flip_hv",
+}
+
 func init() {
+	kernels = make(map[string]*cl.Kernel)
 	flag.Parse()
 
 	platforms := cl.GetPlatforms()
@@ -54,13 +65,6 @@ func mustReadFile(path string) string {
 	return string(src)
 }
 
-var (
-	c                             *cl.Context
-	cq                            *cl.CommandQueue
-	p                             *cl.Program
-	k_shrink, k_enlarge, k_rotate *cl.Kernel
-)
-
 // init OpenCL & load the program
 func initAndPrepCL() error {
 	var err error
@@ -81,26 +85,26 @@ func initAndPrepCL() error {
 		return err
 	}
 
-	k_shrink, err = p.NewKernelNamed("image_shrink")
-	if err != nil {
-		return err
+	addKernel := func(name string) (err error) {
+		kernels[name], err = p.NewKernelNamed(name)
+		return
 	}
 
-	k_enlarge, err = p.NewKernelNamed("image_enlarge")
-	if err != nil {
-		return err
-	}
-
-	k_rotate, err = p.NewKernelNamed("image_rotate")
-	if err != nil {
-		return err
+	for _, kernelName := range kernelNames {
+		if err := addKernel(kernelName); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
+func imageCall(kernelName string, src, dst *cl.Image, dstw, dsth uint32, va ...interface{}) ([]byte, error) {
+	k, ok := kernels[kernelName]
+	if !ok {
+		return nil, errors.New("unknown kernel " + kernelName)
+	}
 
-func imageCall(k *cl.Kernel, src, dst *cl.Image, dw, dh uint32, va ...interface{}) ([]byte, error) {
 	err := k.SetArg(0, src)
 	if err != nil {
 		return nil, err
@@ -119,33 +123,15 @@ func imageCall(k *cl.Kernel, src, dst *cl.Image, dw, dh uint32, va ...interface{
 	}
 
 	empty := make([]cl.Size, 0)
-	gsize := []cl.Size{cl.Size(dw), cl.Size(dh)}
+	gsize := []cl.Size{cl.Size(dstw), cl.Size(dsth)}
 	err = cq.EnqueueKernel(k, empty, gsize, empty)
 
-	pixels, err := cq.EnqueueReadImage(dst, [3]cl.Size{0, 0, 0}, [3]cl.Size{cl.Size(dw), cl.Size(dh), 1}, 0, 0)
+	pixels, err := cq.EnqueueReadImage(dst, [3]cl.Size{0, 0, 0}, [3]cl.Size{cl.Size(dstw), cl.Size(dsth), 1}, 0, 0)
 	if err != nil {
 		return nil, err
 	}
 
 	return pixels, nil
-}
-
-func shrink(s, d *cl.Image, factorx, factory float32) ([]byte, error) {
-	dw := uint32(float32(s.W()) / factorx)
-	dh := uint32(float32(s.H()) / factory)
-	return imageCall(k_shrink, s, d, dw, dh, factorx, factory)
-}
-
-func enlarge(s, d *cl.Image, factorx, factory float32) ([]byte, error) {
-	dw := uint32(float32(s.W()) * factorx)
-	dh := uint32(float32(s.H()) * factory)
-	return imageCall(k_enlarge, s, d, dw, dh, factorx, factory)
-}
-
-func rotate(s, d *cl.Image, angle float32) ([]byte, error) {
-	dw := uint32(s.W())
-	dh := uint32(s.H())
-	return imageCall(k_rotate, s, d, dw, dh, angle)
 }
 
 func main() {
@@ -159,20 +145,20 @@ func main() {
 		panic(sdl.GetError())
 	}
 
-	screen := sdl.SetVideoMode(int(image0.W), int(image0.H), 32, sdl.RESIZABLE|sdl.DOUBLEBUF)
+	dw := uint32(image0.W)
+	dh := uint32(image0.H)
+
+	screen := sdl.SetVideoMode(int(dw), int(dh), 32, sdl.DOUBLEBUF)
 
 	if screen == nil {
 		panic(sdl.GetError())
 	}
 
-
+	image := sdl.DisplayFormat(image0)
+	format := image.Format
 
 	err := initAndPrepCL()
 	check(err)
-
-
-	image := sdl.DisplayFormat(image0)
-	format := image.Format
 
 	order := cl.RGBA
 	elemSize := 4
@@ -181,8 +167,6 @@ func main() {
 		uint32(image.W), uint32(image.H), uint32(image.Pitch), image.Pixels)
 	check(err)
 
-	dw := uint32(image.W)
-	dh := uint32(image.H)
 	dst, err := c.NewImage2D(cl.MEM_WRITE_ONLY, order, cl.UNSIGNED_INT8,
 		dw, dh, 0, nil)
 	check(err)
@@ -203,9 +187,9 @@ func main() {
 			}
 		}
 
-		pixels, err := rotate(src,dst, angle)
+		pixels, err := imageCall("image_rotate", src, dst, dw, dh, angle)
 		check(err)
-		
+
 		news := sdl.CreateRGBSurfaceFrom(&pixels[0],
 			int(dw), int(dh), int(elemSize*8), int(elemSize)*int(dw),
 			format.Rmask, format.Gmask, format.Bmask, format.Amask,
