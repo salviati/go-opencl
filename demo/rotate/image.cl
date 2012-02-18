@@ -1,11 +1,12 @@
-constant sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_LINEAR;
+constant sampler_t linear  = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_LINEAR;
+constant sampler_t nearest = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
 
 // recfactorx = 1/factorx ---taking a division outside of the "loop".
 __kernel void image_recscale(__read_only image2d_t src, __write_only image2d_t dst, float recfactorx, float recfactory) {
 	int2 p = {get_global_id(0), get_global_id(1)};
 	float2 q = {convert_float(get_global_id(0))*recfactorx, convert_float(get_global_id(1))*recfactory};
 
-	uint4 pixel = read_imageui(src, sampler, q);
+	uint4 pixel = read_imageui(src, linear, q);
 	write_imageui(dst, p, pixel);
 }
 
@@ -17,13 +18,11 @@ __kernel void image_rotate(__read_only  image2d_t src, __write_only image2d_t ds
 
 	float c;
 	float s = sincos(angle, &c);
-	float2 Rx = {c,-s};
-	float2 Ry = {s,c};
-	
-	float2 qo = {dot(Rx, po), dot(Ry, po)};
+
+	float2 qo = {c*po.x - s*po.y, s*po.x + c*po.y};
 	float2 q = (qo) + convert_float2(o);
 
-	uint4 pixel = read_imageui(src, sampler, q);
+	uint4 pixel = read_imageui(src, linear, q);
 	write_imageui(dst, p, pixel);
 }
 
@@ -31,7 +30,7 @@ __kernel void image_flip_h(__read_only  image2d_t src, __write_only image2d_t ds
 	int2 p = {get_global_id(0), get_global_id(1)};
 	int2 q = {get_image_width(src) - get_global_id(0), get_global_id(1)};
 	
-	uint4 pixel = read_imageui(src, sampler, q);
+	uint4 pixel = read_imageui(src, nearest, q);
 	write_imageui(dst, p, pixel);
 }
 
@@ -39,7 +38,7 @@ __kernel void image_flip_v(__read_only  image2d_t src, __write_only image2d_t ds
 	int2 p = {get_global_id(0), get_global_id(1)};
 	int2 q = {get_global_id(0), get_image_height(src) - get_global_id(1)};
 	
-	uint4 pixel = read_imageui(src, sampler, q);
+	uint4 pixel = read_imageui(src, nearest, q);
 	write_imageui(dst, p, pixel);
 }
 
@@ -47,6 +46,6 @@ __kernel void image_flip_hv(__read_only  image2d_t src, __write_only image2d_t d
 	int2 p = {get_global_id(0), get_global_id(1)};
 	int2 q = {get_image_width(src) - get_global_id(0), get_image_height(src) - get_global_id(1)};
 	
-	uint4 pixel = read_imageui(src, sampler, q);
+	uint4 pixel = read_imageui(src, nearest, q);
 	write_imageui(dst, p, pixel);
 }
