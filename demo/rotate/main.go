@@ -83,18 +83,19 @@ func main() {
 		panic(sdl.GetError())
 	}
 	defer sdl.Quit()
+	
+	image0 := sdl.Load(*file)
+	if image0 == nil {
+		panic(sdl.GetError())
+	}
 
-	screen := sdl.SetVideoMode(800, 600, 32, sdl.RESIZABLE|sdl.DOUBLEBUF)
+	screen := sdl.SetVideoMode(int(image0.W), int(image0.H), 32, sdl.RESIZABLE|sdl.DOUBLEBUF)
 
 	if screen == nil {
 		panic(sdl.GetError())
 	}
 
-	_image := sdl.Load(*file)
-	if _image == nil {
-		panic(sdl.GetError())
-	}
-	image := sdl.DisplayFormat(_image)
+	image := sdl.DisplayFormat(image0)
 
 	err := initAndPrepCL()
 	check(err)
