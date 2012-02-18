@@ -97,7 +97,7 @@ func (cq *CommandQueue) EnqueueReadImage(im *Image, origin, region [3]Size, rowP
 	if im.d == 0 {
 		if rowPitch == 0 {
 			elemSize, err := im.Info(IMAGE_ELEMENT_SIZE)
-			if err != nil { return []byte{}, nil }	
+			if err != nil { return []byte{}, nil }
 			rowPitch = uint32(elemSize)*im.w
 		}
 		size = int(rowPitch*im.h)
@@ -105,7 +105,7 @@ func (cq *CommandQueue) EnqueueReadImage(im *Image, origin, region [3]Size, rowP
 		if slicePitch == 0 {
 			if rowPitch == 0 { // ditto. ugh.
 				elemSize, err := im.Info(IMAGE_ELEMENT_SIZE)
-				if err != nil { return []byte{}, nil }	
+				if err != nil { return []byte{}, nil }
 				rowPitch = uint32(elemSize)*im.w
 			}
 			slicePitch = rowPitch*im.d
