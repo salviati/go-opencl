@@ -12,7 +12,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"github.com/salviati/go-opencl/cl"
 	"io/ioutil"
@@ -100,23 +99,9 @@ func initAndPrepCL() error {
 	return nil
 }
 
-func imageCall(k *cl.Kernel, s *sdl.Surface, dw, dh uint32, va ...interface{}) (*sdl.Surface, error) {
-	order := cl.RGBA
-	elemSize := 4
 
-	src, err := c.NewImage2D(cl.MEM_READ_ONLY|cl.MEM_USE_HOST_PTR, order, cl.UNSIGNED_INT8,
-		uint32(s.W), uint32(s.H), uint32(s.Pitch), s.Pixels)
-	if err != nil {
-		return nil, err
-	}
-
-	dst, err := c.NewImage2D(cl.MEM_WRITE_ONLY, order, cl.UNSIGNED_INT8,
-		dw, dh, 0, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	err = k.SetArg(0, src)
+func imageCall(k *cl.Kernel, src, dst *cl.Image, dw, dh uint32, va ...interface{}) ([]byte, error) {
+	err := k.SetArg(0, src)
 	if err != nil {
 		return nil, err
 	}
@@ -142,34 +127,25 @@ func imageCall(k *cl.Kernel, s *sdl.Surface, dw, dh uint32, va ...interface{}) (
 		return nil, err
 	}
 
-	d := sdl.CreateRGBSurfaceFrom(&pixels[0],
-		int(dw), int(dh), int(elemSize*8), int(elemSize)*int(dw),
-		s.Format.Rmask, s.Format.Gmask, s.Format.Bmask, s.Format.Amask,
-	)
-
-	if d == nil {
-		return nil, errors.New(sdl.GetError())
-	}
-
-	return d, nil
+	return pixels, nil
 }
 
-func shrink(s *sdl.Surface, factorx, factory float32) (*sdl.Surface, error) {
-	dw := uint32(float32(s.W) / factorx)
-	dh := uint32(float32(s.H) / factory)
-	return imageCall(k_shrink, s, dw, dh, factorx, factory)
+func shrink(s, d *cl.Image, factorx, factory float32) ([]byte, error) {
+	dw := uint32(float32(s.W()) / factorx)
+	dh := uint32(float32(s.H()) / factory)
+	return imageCall(k_shrink, s, d, dw, dh, factorx, factory)
 }
 
-func enlarge(s *sdl.Surface, factorx, factory float32) (*sdl.Surface, error) {
-	dw := uint32(float32(s.W) * factorx)
-	dh := uint32(float32(s.H) * factory)
-	return imageCall(k_enlarge, s, dw, dh, factorx, factory)
+func enlarge(s, d *cl.Image, factorx, factory float32) ([]byte, error) {
+	dw := uint32(float32(s.W()) * factorx)
+	dh := uint32(float32(s.H()) * factory)
+	return imageCall(k_enlarge, s, d, dw, dh, factorx, factory)
 }
 
-func rotate(s *sdl.Surface, angle float32) (*sdl.Surface, error) {
-	dw := uint32(s.W)
-	dh := uint32(s.H)
-	return imageCall(k_rotate, s, dw, dh, angle)
+func rotate(s, d *cl.Image, angle float32) ([]byte, error) {
+	dw := uint32(s.W())
+	dh := uint32(s.H())
+	return imageCall(k_rotate, s, d, dw, dh, angle)
 }
 
 func main() {
@@ -189,9 +165,26 @@ func main() {
 		panic(sdl.GetError())
 	}
 
-	image := sdl.DisplayFormat(image0)
+
 
 	err := initAndPrepCL()
+	check(err)
+
+
+	image := sdl.DisplayFormat(image0)
+	format := image.Format
+
+	order := cl.RGBA
+	elemSize := 4
+
+	src, err := c.NewImage2D(cl.MEM_READ_ONLY|cl.MEM_USE_HOST_PTR, order, cl.UNSIGNED_INT8,
+		uint32(image.W), uint32(image.H), uint32(image.Pitch), image.Pixels)
+	check(err)
+
+	dw := uint32(image.W)
+	dh := uint32(image.H)
+	dst, err := c.NewImage2D(cl.MEM_WRITE_ONLY, order, cl.UNSIGNED_INT8,
+		dw, dh, 0, nil)
 	check(err)
 
 	e := new(sdl.Event)
@@ -210,8 +203,17 @@ func main() {
 			}
 		}
 
-		news, err := rotate(image, angle)
+		pixels, err := rotate(src,dst, angle)
 		check(err)
+		
+		news := sdl.CreateRGBSurfaceFrom(&pixels[0],
+			int(dw), int(dh), int(elemSize*8), int(elemSize)*int(dw),
+			format.Rmask, format.Gmask, format.Bmask, format.Amask,
+		)
+
+		if news == nil {
+			log.Fatal(sdl.GetError())
+		}
 
 		screen.FillRect(nil, 0)
 		screen.Blit(&sdl.Rect{0, 0, 0, 0}, news, nil)

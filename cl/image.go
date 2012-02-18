@@ -72,7 +72,19 @@ type Image struct {
 	id C.cl_mem
 	w,h,d uint32
 	hostptr *byte
-} 
+}
+
+func (im *Image) W() uint32 {
+	return im.w
+}
+
+func (im *Image) H() uint32 {
+	return im.h
+}
+
+func (im *Image) D() uint32 {
+	return im.d
+}
 
 func (im *Image) release() error {
 	err := releaseMemObject(im.id)
