@@ -255,7 +255,7 @@ func (c *Context) NewImage2D(flags MemFlags, order ChannelOrder, dataType Channe
 		return nil, Cl_error(err)
 	}
 
-	image := &Image{id: c_buffer, w: width, h: height, d: 0}
+	image := &Image{id: c_buffer, w: width, h: height, hostptr: data}
 	runtime.SetFinalizer(image, (*Image).release)
 
 	return image, nil
@@ -273,7 +273,7 @@ func (c *Context) NewImage3D(flags MemFlags, order ChannelOrder, dataType Channe
 		return nil, Cl_error(err)
 	}
 
-	image := &Image{id: c_buffer}
+	image := &Image{id: c_buffer, w: width, h: height, d: depth, hostptr: data}
 	runtime.SetFinalizer(image, (*Image).release)
 
 	return image, nil

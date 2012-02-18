@@ -71,6 +71,7 @@ const (
 type Image struct {
 	id C.cl_mem
 	w,h,d uint32
+	hostptr *byte
 } 
 
 func (im *Image) release() error {
