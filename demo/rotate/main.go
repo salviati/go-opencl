@@ -32,7 +32,7 @@ var (
 )
 
 var kernelNames = []string{
-	"image_shrink", "image_enlarge", "image_rotate", 
+	"image_scale", "image_rotate",
 	"image_flip_h", "image_flip_v", "image_flip_hv",
 }
 
@@ -99,7 +99,8 @@ func initAndPrepCL() error {
 	return nil
 }
 
-func imageCall(kernelName string, src, dst *cl.Image, dstw, dsth uint32, va ...interface{}) ([]byte, error) {
+// Will call kernelName(src, dst, va...) on the device side.
+func imageCall(dstW, dstH uint32, kernelName string, src, dst *cl.Image, va ...interface{}) ([]byte, error) {
 	k, ok := kernels[kernelName]
 	if !ok {
 		return nil, errors.New("unknown kernel " + kernelName)
@@ -123,10 +124,10 @@ func imageCall(kernelName string, src, dst *cl.Image, dstw, dsth uint32, va ...i
 	}
 
 	empty := make([]cl.Size, 0)
-	gsize := []cl.Size{cl.Size(dstw), cl.Size(dsth)}
+	gsize := []cl.Size{cl.Size(dstW), cl.Size(dstH)}
 	err = cq.EnqueueKernel(k, empty, gsize, empty)
 
-	pixels, err := cq.EnqueueReadImage(dst, [3]cl.Size{0, 0, 0}, [3]cl.Size{cl.Size(dstw), cl.Size(dsth), 1}, 0, 0)
+	pixels, err := cq.EnqueueReadImage(dst, [3]cl.Size{0, 0, 0}, [3]cl.Size{cl.Size(dstW), cl.Size(dstH), 1}, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -145,10 +146,13 @@ func main() {
 		panic(sdl.GetError())
 	}
 
-	dw := uint32(image0.W)
-	dh := uint32(image0.H)
+	factorx := float32(1)
+	factory := float32(1)
 
-	screen := sdl.SetVideoMode(int(dw), int(dh), 32, sdl.DOUBLEBUF)
+	dstW := uint32(float32(image0.W) * factorx)
+	dstH := uint32(float32(image0.H) * factory)
+
+	screen := sdl.SetVideoMode(int(dstW), int(dstH), 32, sdl.DOUBLEBUF)
 
 	if screen == nil {
 		panic(sdl.GetError())
@@ -168,7 +172,7 @@ func main() {
 	check(err)
 
 	dst, err := c.NewImage2D(cl.MEM_WRITE_ONLY, order, cl.UNSIGNED_INT8,
-		dw, dh, 0, nil)
+		dstW, dstH, 0, nil)
 	check(err)
 
 	e := new(sdl.Event)
@@ -187,11 +191,12 @@ func main() {
 			}
 		}
 
-		pixels, err := imageCall("image_rotate", src, dst, dw, dh, angle)
+		pixels, err := imageCall(dstW, dstH, "image_rotate", src, dst, angle)
+		//pixels, err := imageCall(dstW, dstH, "image_scale", src, dst, factorx, factory)
 		check(err)
 
 		news := sdl.CreateRGBSurfaceFrom(&pixels[0],
-			int(dw), int(dh), int(elemSize*8), int(elemSize)*int(dw),
+			int(dstW), int(dstH), int(elemSize*8), int(elemSize)*int(dstW),
 			format.Rmask, format.Gmask, format.Bmask, format.Amask,
 		)
 
