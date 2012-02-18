@@ -3,7 +3,7 @@
 
 		https://github.com/banthar/Go-SDL doesn't implement CreateRGBSurfaceFrom, since pixels may be garbage collected in general.
 
-		func CreateRGBSurfaceFrom(pixels *byte, width int, height int, depth int, pitch int, Rmask uint32, Gmask uint32, Bmask uint32, Amask uint32) *Surface {
+		func (*Surface) CreateRGBSurfaceFrom(pixels *byte, width int, height int, depth int, pitch int, Rmask uint32, Gmask uint32, Bmask uint32, Amask uint32) *Surface {
 			p := C.SDL_CreateRGBSurfaceFrom(unsafe.Pointer(pixels), C.int(width), C.int(height), C.int(depth), C.int(pitch),
 				C.Uint32(Rmask), C.Uint32(Gmask), C.Uint32(Bmask), C.Uint32(Amask))
 			return (*Surface)(cast(p))
@@ -19,6 +19,7 @@ import (
 	"log"
 	"os"
 	"sdl"
+	"math"
 )
 
 var file = flag.String("t", "lenna.png", "Test file")
@@ -34,6 +35,7 @@ var (
 var kernelNames = []string{
 	"image_recscale", "image_rotate",
 	"image_flip_h", "image_flip_v", "image_flip_hv",
+	"image_affine","image_affine2",
 }
 
 func init() {
@@ -191,8 +193,15 @@ func main() {
 			}
 		}
 
-		pixels, err := imageCall(dstW, dstH, "image_rotate", src, dst, angle)
 		//pixels, err := imageCall(dstW, dstH, "image_recscale", src, dst, 1/factorx, 1/factory)
+
+		//pixels, err := imageCall(dstW, dstH, "image_rotate", src, dst, angle)
+		s64,c64 := math.Sincos(float64(angle))
+		s:=float32(s64); c:=float32(c64)
+		off := []float32{float32(dstW/2), float32(dstH/2)}
+		pixels, err := imageCall(dstW, dstH, "image_affine2", src, dst,
+						[]float32{c,-s}, []float32{s,c},
+						off, off)
 		check(err)
 
 		news := sdl.CreateRGBSurfaceFrom(&pixels[0],
