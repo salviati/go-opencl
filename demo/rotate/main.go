@@ -190,7 +190,7 @@ func main() {
 			off, off)
 		check(err)
 
-		news := sdl.CreateRGBSurfaceFrom(&pixels[0],
+		news := sdl.CreateRGBSurfaceFrom(pixels,
 			int(dstW), int(dstH), int(elemSize*8), int(elemSize)*int(dstW),
 			format.Rmask, format.Gmask, format.Bmask, format.Amask,
 		)
