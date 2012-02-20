@@ -1,25 +1,14 @@
-/*
-	  NOTE:
-
-		https://github.com/banthar/Go-SDL doesn't implement CreateRGBSurfaceFrom, since pixels may be garbage collected in general.
-
-		func (*Surface) CreateRGBSurfaceFrom(pixels *byte, width int, height int, depth int, pitch int, Rmask uint32, Gmask uint32, Bmask uint32, Amask uint32) *Surface {
-			p := C.SDL_CreateRGBSurfaceFrom(unsafe.Pointer(pixels), C.int(width), C.int(height), C.int(depth), C.int(pitch),
-				C.Uint32(Rmask), C.Uint32(Gmask), C.Uint32(Bmask), C.Uint32(Amask))
-			return (*Surface)(cast(p))
-		}
-*/
 package main
 
 import (
 	"errors"
 	"flag"
+	"github.com/banthar/Go-SDL/sdl"
 	"github.com/salviati/go-opencl/cl"
 	"io/ioutil"
 	"log"
-	"os"
-	"sdl"
 	"math"
+	"os"
 )
 
 var file = flag.String("t", "lenna.png", "Test file")
@@ -35,7 +24,7 @@ var (
 var kernelNames = []string{
 	"image_recscale", "image_rotate",
 	"image_flip_h", "image_flip_v", "image_flip_hv",
-	"image_affine","image_affine2",
+	"image_affine", "image_affine2",
 }
 
 func init() {
@@ -139,37 +128,41 @@ func imageCall(dstW, dstH uint32, kernelName string, src, dst *cl.Image, va ...i
 
 type matrix []float32
 
+// Rotate.
 func R(angle float32) matrix {
-	s64,c64 := math.Sincos(float64(angle))
-	s:=float32(s64); c:=float32(c64)
+	s64, c64 := math.Sincos(float64(angle))
+	s := float32(s64)
+	c := float32(c64)
 
-	return []float32{c,-s, s,c}
+	return []float32{c, -s, s, c}
 }
 
+// Scale.
 func S(sx, sy float32) matrix {
-	return []float32{sx,0,0,sy}
+	return []float32{sx, 0, 0, sy}
 }
 
+// Shear.
 func H(hx, hy float32) matrix {
-	return []float32{1,hx,hy,1}
+	return []float32{1, hx, hy, 1}
 }
 
+// Inverts m.
 func (m matrix) inv() {
-	det := m[0]*m[3]-m[1]*m[2]
+	det := m[0]*m[3] - m[1]*m[2]
 	m[1], m[2] = -m[1]/det, -m[2]/det
 	m[0], m[3] = m[3]/det, m[0]/det
 }
 
-func mul(a,b matrix) matrix {
+// Returns a*b.
+func mul(a, b matrix) matrix {
 	return []float32{
-		a[0]*b[0]+a[1]*b[2],
-		a[0]*b[1]+a[1]*b[3],
-		a[2]*b[0]+a[3]*b[2],
-		a[2]*b[1]+a[3]*b[3],
+		a[0]*b[0] + a[1]*b[2],
+		a[0]*b[1] + a[1]*b[3],
+		a[2]*b[0] + a[3]*b[2],
+		a[2]*b[1] + a[3]*b[3],
 	}
 }
-
-
 
 func main() {
 	if sdl.Init(sdl.INIT_EVERYTHING) != 0 {
@@ -211,30 +204,29 @@ func main() {
 		dstW, dstH, 0, nil)
 	check(err)
 
-	e := new(sdl.Event)
 	angle := float32(0)
 	for running := true; running; angle += 0.001 {
-		e.Poll()
-
-		switch e.Type {
-		case sdl.QUIT:
-			running = false
-			break
-		case sdl.KEYDOWN:
-			if e.Keyboard().Keysym.Sym == sdl.K_ESCAPE {
+		for e := sdl.PollEvent(); e != nil; e = sdl.PollEvent() {
+			switch ev := e.(type) {
+			case *sdl.QuitEvent:
 				running = false
 				break
+			case *sdl.KeyboardEvent:
+				if ev.Keysym.Sym == sdl.K_ESCAPE {
+					running = false
+					break
+				}
 			}
 		}
 
 		//pixels, err := imageCall(dstW, dstH, "image_recscale", src, dst, 1/factorx, 1/factory)
 
 		//pixels, err := imageCall(dstW, dstH, "image_rotate", src, dst, angle)
-		m := mul(S(1.2,1.2), R(angle))
-		off := []float32{float32(dstW/2), float32(dstH/2)}
+		m := mul(S(1.2, 1.2), R(angle))
+		off := []float32{float32(dstW / 2), float32(dstH / 2)}
 		pixels, err := imageCall(dstW, dstH, "image_affine2", src, dst,
-						[]float32(m[0:2]), []float32(m[2:4]),
-						off, off)
+			[]float32(m[0:2]), []float32(m[2:4]),
+			off, off)
 		check(err)
 
 		news := sdl.CreateRGBSurfaceFrom(&pixels[0],

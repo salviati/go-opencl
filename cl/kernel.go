@@ -48,6 +48,9 @@ func (k *Kernel) SetArg(index uint, arg interface{}) error {
 		ret = C.clSetKernelArg(k.id, C.cl_uint(index), C.size_t(4), unsafe.Pointer(&t))
 	case []float32:
 		ret = C.clSetKernelArg(k.id, C.cl_uint(index), C.size_t(len(t)*4), unsafe.Pointer(&t[0]))
+	case *float32:
+		var p *C.float
+		ret = C.clSetKernelArg(k.id, C.cl_uint(index), C.size_t(unsafe.Sizeof(p)), unsafe.Pointer(&t))
 
 	default:
 		return Cl_error(C.CL_INVALID_VALUE)

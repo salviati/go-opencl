@@ -50,6 +50,7 @@ __kernel void image_flip_hv(__read_only  image2d_t src, __write_only image2d_t d
 	write_imageui(dst, p, pixel);
 }
 
+// q = A.p
 __kernel void image_affine(__read_only  image2d_t src, __write_only image2d_t dst, float2 Ax, float2 Ay) {
 	int2 p = {get_global_id(0), get_global_id(1)};
 	float2 pf = convert_float2(p);
@@ -59,6 +60,7 @@ __kernel void image_affine(__read_only  image2d_t src, __write_only image2d_t ds
 	write_imageui(dst, p, pixel);
 }
 
+// q-q0 = A.(p-p0)
 __kernel void image_affine2(__read_only  image2d_t src, __write_only image2d_t dst, float2 Ax, float2 Ay, float2 p0, float2 q0) {
 	int2 p = {get_global_id(0), get_global_id(1)};
 	float2 pf = convert_float2(p);

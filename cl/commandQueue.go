@@ -112,7 +112,7 @@ func (cq *CommandQueue) EnqueueReadImage(im *Image, origin, region [3]Size, rowP
 		}
 		size = int(slicePitch*im.d)
 	}
-	
+
 	bytes := make([]byte, size)
 
 	if ret := C.clEnqueueReadImage(cq.id, im.id, C.CL_TRUE, (*C.size_t)(unsafe.Pointer(&origin[0])), (*C.size_t)(unsafe.Pointer(&region[0])), C.size_t(rowPitch), C.size_t(slicePitch), unsafe.Pointer(&bytes[0]), 0, nil, nil); ret != C.CL_SUCCESS {
