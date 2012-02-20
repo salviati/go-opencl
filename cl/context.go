@@ -284,7 +284,9 @@ func (c *Context) NewSampler(normalizedCoords bool, addressingMode AddressingMod
 	var err C.cl_int
 
 	cNormalizedCoords := C.cl_bool(C.CL_FALSE)
-	if normalizedCoords { cNormalizedCoords = C.CL_TRUE }
+	if normalizedCoords {
+		cNormalizedCoords = C.CL_TRUE
+	}
 
 	if c_sampler = C.clCreateSampler(c.id, cNormalizedCoords, C.cl_addressing_mode(addressingMode), C.cl_filter_mode(filterMode), &err); err != C.CL_SUCCESS {
 		return nil, Cl_error(err)

@@ -57,8 +57,8 @@ func (q *CommandQueue) release() error {
 type Size C.size_t
 
 func (cq *CommandQueue) EnqueueKernel(k *Kernel, offset, gsize, lsize []Size) error {
-	
-	cptr := func (w []Size) *C.size_t {
+
+	cptr := func(w []Size) *C.size_t {
 		if len(w) == 0 {
 			return nil
 		}
@@ -68,7 +68,7 @@ func (cq *CommandQueue) EnqueueKernel(k *Kernel, offset, gsize, lsize []Size) er
 	c_offset := cptr(offset)
 	c_gsize := cptr(gsize)
 	c_lsize := cptr(lsize)
-	
+
 	if ret := C.clEnqueueNDRangeKernel(cq.id, k.id, C.cl_uint(len(gsize)), c_offset, c_gsize, c_lsize, 0, nil, nil); ret != C.CL_SUCCESS {
 		return Cl_error(ret)
 	}
@@ -97,20 +97,24 @@ func (cq *CommandQueue) EnqueueReadImage(im *Image, origin, region [3]Size, rowP
 	if im.d == 0 {
 		if rowPitch == 0 {
 			elemSize, err := im.Info(IMAGE_ELEMENT_SIZE)
-			if err != nil { return []byte{}, nil }
-			rowPitch = uint32(elemSize)*im.w
+			if err != nil {
+				return []byte{}, nil
+			}
+			rowPitch = uint32(elemSize) * im.w
 		}
-		size = int(rowPitch*im.h)
+		size = int(rowPitch * im.h)
 	} else {
 		if slicePitch == 0 {
 			if rowPitch == 0 { // ditto. ugh.
 				elemSize, err := im.Info(IMAGE_ELEMENT_SIZE)
-				if err != nil { return []byte{}, nil }
-				rowPitch = uint32(elemSize)*im.w
+				if err != nil {
+					return []byte{}, nil
+				}
+				rowPitch = uint32(elemSize) * im.w
 			}
-			slicePitch = rowPitch*im.d
+			slicePitch = rowPitch * im.d
 		}
-		size = int(slicePitch*im.d)
+		size = int(slicePitch * im.d)
 	}
 
 	bytes := make([]byte, size)
