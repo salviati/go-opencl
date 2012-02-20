@@ -106,8 +106,8 @@ const (
 	IMAGE_DEPTH        ImageInfo = C.CL_IMAGE_DEPTH
 )
 
-func (im *Image) Info(param ImageInfo) (uint64, error) {
-	var ret uint64
+func (im *Image) Info(param ImageInfo) (uint32, error) {
+	var ret uint32
 	if err := C.clGetImageInfo(im.id, C.cl_image_info(param), C.size_t(8), unsafe.Pointer(&ret), nil); err != C.CL_SUCCESS {
 		return 0, Cl_error(err)
 	}
